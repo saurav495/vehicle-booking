@@ -1,7 +1,86 @@
-import React from "react";
 import { Carousel, Container, Row, Col, Form, Button, Card } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import { fetchVehicles, availableVehicles } from "../apis/vehicleApi";
+import { addBooking } from "../apis/bookingApi";
+import BookingModal from "./BookingVehicle";
 
 const HomePage = () => {
+  const [capacityRequired, setCapacityRequired] = useState("");
+  const [fromPincode, setFromPincode] = useState("");
+  const [toPincode, setToPincode] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const [formData, setFormData] = useState({
+    fromPincode: "",
+    toPincode: "",
+    startTime: "",
+    customerName: "Your Name",
+  });
+
+  const handleBookNow = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setShowModal(true);
+  };
+
+  const handleConfirmBooking = async () => {
+    try {
+      const bookingData = {
+        vehicleId: selectedVehicle._id,
+        fromPincode: formData.fromPincode,
+        toPincode: formData.toPincode,
+        startTime: formData.startTime,
+        customerName: formData.customerName, 
+      };
+
+      console.log("Booking request:", bookingData);
+      const response = await addBooking(bookingData);
+      alert("✅ Booking successful!");
+      console.log("Booking response:", response);
+
+      setShowModal(false);
+      setFormData({ fromPincode: "", toPincode: "", startTime: "", customerId: "cust123" });
+    } catch (error) {
+      if (error.response?.status === 409) {
+        alert("❌ Vehicle already booked for this time.");
+      } else {
+        alert("⚠️ Error booking vehicle.");
+      }
+      console.error(error);
+    }
+  };
+
+  // 🔹 Fetch all vehicles on first load
+  useEffect(() => {
+    const loadVehicles = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchVehicles();
+        setVehicles(data);
+      } catch (error) {
+        console.error("Error fetching vehicles:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadVehicles();
+  }, []);
+
+  const handleSearch = async () => {
+    try {
+      setLoading(true);
+      const data = await availableVehicles({ capacityRequired, fromPincode, toPincode, startTime });
+      setVehicles(data);
+    } catch (error) {
+      console.error("Error fetching available vehicles:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div>
       {/* Hero Carousel */}
@@ -14,11 +93,8 @@ const HomePage = () => {
             style={{ height: "600px", objectFit: "cover" }}
           />
           <Carousel.Caption className="text-start" style={{ bottom: "4.5rem" }}>
-            <h5>For Rent $70 Per Day</h5>
+            <h5>For Rent 3000 Per Day</h5>
             <h1 className="fw-bold">Reserve Now & Get 50% Off</h1>
-            <Button variant="outline-light" size="lg">
-              Reserve Now
-            </Button>
           </Carousel.Caption>
         </Carousel.Item>
 
@@ -32,9 +108,6 @@ const HomePage = () => {
           <Carousel.Caption className="text-start" style={{ bottom: "4.5rem" }}>
             <h5>Luxury SUV Deals</h5>
             <h1 className="fw-bold">Ride in Style & Comfort</h1>
-            <Button variant="outline-light" size="lg">
-              Explore Now
-            </Button>
           </Carousel.Caption>
         </Carousel.Item>
 
@@ -48,9 +121,6 @@ const HomePage = () => {
           <Carousel.Caption className="text-start" style={{ bottom: "4.5rem" }}>
             <h5>Adventure Awaits</h5>
             <h1 className="fw-bold">Book Your Offroad Beast</h1>
-            <Button variant="outline-light" size="lg">
-              Book Now
-            </Button>
           </Carousel.Caption>
         </Carousel.Item>
       </Carousel>
@@ -69,28 +139,39 @@ const HomePage = () => {
             <h5 className="fw-bold text-danger">Search Your Best Cars Here.</h5>
           </Col>
           <Col md={2} className="mb-2">
-            <Form.Control type="text" placeholder="From Address" />
+            <Form.Control
+              type="number"
+              placeholder="Capacity Required"
+              value={capacityRequired}
+              onChange={(e) => setCapacityRequired(e.target.value)}
+            />
           </Col>
           <Col md={2} className="mb-2">
-            <Form.Control type="text" placeholder="To Address" />
+            <Form.Control
+              type="text"
+              placeholder="From Pincode"
+              value={fromPincode}
+              onChange={(e) => setFromPincode(e.target.value)}
+            />
           </Col>
           <Col md={2} className="mb-2">
-            <Form.Select>
-              <option>AC Car</option>
-              <option>Non-AC Car</option>
-              <option>SUV</option>
-              <option>Luxury</option>
-            </Form.Select>
+            <Form.Control
+              type="text"
+              placeholder="To Pincode"
+              value={toPincode}
+              onChange={(e) => setToPincode(e.target.value)}
+            />
+          </Col>
+          <Col md={2} className="mb-2">
+            <Form.Control
+              type="datetime-local"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+            />
           </Col>
           <Col md={1} className="mb-2">
-            <Form.Control type="date" />
-          </Col>
-          <Col md={1} className="mb-2">
-            <Form.Control type="time" />
-          </Col>
-          <Col md={1} className="mb-2">
-            <Button variant="outline-danger" className="w-100">
-              Find Car
+            <Button variant="outline-danger" className="w-100" onClick={handleSearch}>
+              Search Availability
             </Button>
           </Col>
         </Row>
@@ -130,65 +211,55 @@ const HomePage = () => {
         </Row>
       </Container>
       <Container className="my-5">
-        <Row xs={1} md={3} className="g-4">
-          {[
-            {
-              name: "Mahindra Scorpio",
-              price: 65,
-              model: 2022,
-              transmission: "Manual",
-              mileage: "15kmpl",
-              img: "/assets/img/scorpio1.jpg",
-            },
-            {
-              name: "Suv",
-              price: 55,
-              model: 2020,
-              transmission: "Manual",
-              mileage: "18kmpl",
-              img: "/assets/img/suv1.jpg",
-            },
-            {
-              name: "Thar 4x4",
-              price: 75,
-              model: 2023,
-              transmission: "Manual",
-              mileage: "14kmpl",
-              img: "/assets/img/thar1.jpg",
-            },
-          ].map((car, idx) => (
-            <Col key={idx}>
-              <Card className="text-center shadow-sm border-0">
-                <Card.Img
-                  variant="top"
-                  src={car.img}
-                  style={{ width: "100%", height: "200px", objectFit: "contain" }}
-                />
-                <Card.Body>
-                  <Card.Title className="fw-bold fs-4">{car.name}</Card.Title>
-                  <Card.Text>
-                    <span className="fw-bold fs-5">{car.price.toFixed(2)}</span>{" "}
-                    <span className="text-danger">/ Day</span>
-                  </Card.Text>
-                  <div className="d-flex justify-content-center gap-3 text-muted mb-3">
-                    <span>🚗 Model:{car.model}</span>
-                    <span>⚙️ {car.transmission}</span>
-                    <span>⛽ {car.mileage}</span>
-                  </div>
-                  <div className="d-flex justify-content-between">
-                    <Button variant="dark" className="w-50 rounded-0">
-                      Rent Car
-                    </Button>
-                    <Button variant="danger" className="w-50 rounded-0">
-                      Details
-                    </Button>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+        {loading ? (
+          <p className="text-center">Loading vehicles...</p>
+        ) : vehicles.length === 0 ? (
+          <p className="text-center">No vehicles available.</p>
+        ) : (
+          <Row xs={1} md={3} className="g-4">
+            {vehicles.map((car) => (
+              <Col key={car._id}>
+                <Card className="text-center shadow-sm border-0">
+                  <Card.Img
+                    variant="top"
+                    src={car.imageUrl || "/assets/img/default-car.jpg"}
+                    style={{ width: "100%", height: "200px", objectFit: "contain" }}
+                  />
+                  <Card.Body>
+                    <Card.Title className="fw-bold fs-4">{car.name}</Card.Title>
+                    <Card.Text>
+                      <span className="fw-bold fs-5">{car.rentalPricePerDay}</span>{" "}
+                      <span className="text-danger">/ Day</span>
+                    </Card.Text>
+                    <div className="d-flex justify-content-center gap-3 text-muted mb-3">
+                      <span>🚗 Type: {car.type}</span>
+                      <span>👥 Capacity: {car.capacity}</span>
+                      <span>🛞 Tyres: {car.tyers}</span>
+                    </div>
+                    <div className="d-flex justify-content-between">
+                      <Button variant="dark" className="w-50 rounded-0" onClick={() => handleBookNow(car)}>
+                        Rent Car
+                      </Button>
+                      <Button variant="danger" className="w-50 rounded-0">
+                        Details
+                      </Button>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )}
       </Container>
+      {/* Booking Modal */}
+      <BookingModal
+        show={showModal}
+        handleClose={() => setShowModal(false)}
+        vehicle={selectedVehicle}
+        formData={formData}
+        setFormData={setFormData}
+        handleConfirmBooking={handleConfirmBooking}
+      />
       <footer style={{ backgroundColor: "#000", color: "#ccc", padding: "60px 0 2px" }}>
         <Container>
           <Row>
@@ -270,7 +341,6 @@ const HomePage = () => {
                   />
                   <div>
                     <p className="mb-1 text-white small" style={{ fontSize: "13px" }}>
-                      {post.title}
                     </p>
                     <span className="text-danger" style={{ fontSize: "12px" }}>
                       Posted on: {post.date}

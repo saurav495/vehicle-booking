@@ -1,18 +1,18 @@
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
-import NavDropdown from 'react-bootstrap/NavDropdown';
+import { Link } from 'react-router-dom';
 
 function CollapsibleExample() {
   return (
     <Navbar collapseOnSelect expand="lg"  bg="dark" variant="dark">
       <Container>
-        <Navbar.Brand href="#home">SP Rental</Navbar.Brand>
+        <Navbar.Brand as={Link} to="/">SP Rental</Navbar.Brand>
         <Navbar.Toggle aria-controls="responsive-navbar-nav" />
         <Navbar.Collapse id="responsive-navbar-nav">
           <Nav className="me-auto">
-            <Nav.Link href="#features">Home</Nav.Link>
-            <Nav.Link href="#pricing">Add Vehicle</Nav.Link>
+            <Nav.Link as={Link} to="/">Home</Nav.Link>
+            <Nav.Link as={Link} to="/add-vehicle">Add Vehicle</Nav.Link>
           </Nav>
           <Nav>
             <Nav.Link href="#deets">More deets</Nav.Link>
