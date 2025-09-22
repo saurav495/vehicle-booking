@@ -5,7 +5,6 @@ import { addBooking } from "../apis/bookingApi";
 import BookingModal from "./BookingVehicle";
 
 const HomePage = () => {
-  const [capacityRequired, setCapacityRequired] = useState("");
   const [fromPincode, setFromPincode] = useState("");
   const [toPincode, setToPincode] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -15,6 +14,7 @@ const HomePage = () => {
   const [showModal, setShowModal] = useState(false);
 
   const [formData, setFormData] = useState({
+    capacityRequired: "",
     fromPincode: "",
     toPincode: "",
     startTime: "",
@@ -33,7 +33,7 @@ const HomePage = () => {
         fromPincode: formData.fromPincode,
         toPincode: formData.toPincode,
         startTime: formData.startTime,
-        customerName: formData.customerName, 
+        customerName: formData.customerName,
       };
 
       console.log("Booking request:", bookingData);
@@ -70,14 +70,18 @@ const HomePage = () => {
   }, []);
 
   const handleSearch = async () => {
+    const params = {
+      capacityRequired: formData.capacityRequired,
+      fromPincode,
+      toPincode,
+      startTime,
+    };
+
     try {
-      setLoading(true);
-      const data = await availableVehicles({ capacityRequired, fromPincode, toPincode, startTime });
-      setVehicles(data);
+      const data = await availableVehicles(params); // call your API helper
+      setVehicles(data); // update state to re-render cards
     } catch (error) {
       console.error("Error fetching available vehicles:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -142,8 +146,8 @@ const HomePage = () => {
             <Form.Control
               type="number"
               placeholder="Capacity Required"
-              value={capacityRequired}
-              onChange={(e) => setCapacityRequired(e.target.value)}
+              value={formData.capacityRequired}
+              onChange={(e) => setFormData({ ...formData, capacityRequired: e.target.value })}
             />
           </Col>
           <Col md={2} className="mb-2">
@@ -232,7 +236,8 @@ const HomePage = () => {
                       <span className="text-danger">/ Day</span>
                     </Card.Text>
                     <div className="d-flex justify-content-center gap-3 text-muted mb-3">
-                      <span>🚗 Type: {car.type}</span>
+                      <span>{car.type?.toLowerCase() === "car" ? "🚗" : car.type?.toLowerCase() === "bike" ? "🏍️" : "🚙"} {" "}Type: {car.type}
+                      </span>
                       <span>👥 Capacity: {car.capacity}</span>
                       <span>🛞 Tyres: {car.tyers}</span>
                     </div>
